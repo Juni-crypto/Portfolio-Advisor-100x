@@ -16,10 +16,10 @@ from fastapi.middleware.cors import CORSMiddleware  # Import CORSMiddleware
 load_dotenv()
 
 # Ensure your .env file or environment variables contain the following keys
-lyzr_api_key = os.getenv("LYZR_API_KEY", "lyzr-t1stxHTzGMNqwsPjLUvQdnvi")
-twelvedata_api_key = os.getenv("TWELVEDATA_API_KEY", "4f39087e95a3474ba2540b08ee0b3f06")
-GENAI_API_KEY = os.getenv("GENAI_API_KEY", 'AIzaSyC-do77zfjKjZjMski7yLhGA-yBltlSKww') 
-agent_id = os.getenv("AGENT_ID", '6741abb461f92e3cfeefa3ab')  # Replace with your actual agent ID or set via environment variable
+lyzr_api_key = os.getenv("LYZR_API_KEY")
+twelvedata_api_key = os.getenv("TWELVEDATA_API_KEY")
+GENAI_API_KEY = os.getenv("GENAI_API_KEY") 
+agent_id = os.getenv("AGENT_ID")  # Replace with your actual agent ID or set via environment variable
 
 if not all([lyzr_api_key, twelvedata_api_key, GENAI_API_KEY, agent_id]):
     raise EnvironmentError("Missing API keys or agent ID. Please set LYZR_API_KEY, TWELVEDATA_API_KEY, GENAI_API_KEY, and AGENT_ID in your environment.")
