@@ -18,7 +18,35 @@ function App() {
         </div>
         <AdvisorForm />
       </div>
+
+      <footer className="mt-12 text-center text-gray-500">
+          <p>
+            Made by{' '}
+            <a
+              href="https://chumaoruworks.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gold hover:text-gold-light transition-colors"
+            >
+              Chumaoru Works Creative Club
+            </a>
+          </p>
+          <p className="mt-2">
+          We'd love to hear your feedback and suggestions for improvement. Please submit them{' '}
+            <a
+              href="https://forms.gle/XdEGo3jf3jfZxCeT8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gold-400/80 text-lg"
+              aria-label="Submit your feedback and suggestions for improvement"
+            >
+              here
+            </a>.
+          </p>
+        </footer>
     </div>
+
+    
   );
 }
 
