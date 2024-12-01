@@ -16,10 +16,10 @@ from fastapi.middleware.cors import CORSMiddleware  # Import CORSMiddleware
 load_dotenv()
 
 # Ensure your .env file or environment variables contain the following keys
-lyzr_api_key = os.getenv("LYZR_API_KEY")
-twelvedata_api_key = os.getenv("TWELVEDATA_API_KEY")
-GENAI_API_KEY = os.getenv("GENAI_API_KEY") 
-agent_id = os.getenv("AGENT_ID")  # Replace with your actual agent ID or set via environment variable
+lyzr_api_key = os.getenv("LYZR_API_KEY", "lyzr-t1stxHTzGMNqwsPjLUvQdnvi")
+twelvedata_api_key = os.getenv("TWELVEDATA_API_KEY", "4f39087e95a3474ba2540b08ee0b3f06")
+GENAI_API_KEY = os.getenv("GENAI_API_KEY", 'AIzaSyC-do77zfjKjZjMski7yLhGA-yBltlSKww') 
+agent_id = os.getenv("AGENT_ID", '6741abb461f92e3cfeefa3ab')  # Replace with your actual agent ID or set via environment variable
 
 if not all([lyzr_api_key, twelvedata_api_key, GENAI_API_KEY, agent_id]):
     raise EnvironmentError("Missing API keys or agent ID. Please set LYZR_API_KEY, TWELVEDATA_API_KEY, GENAI_API_KEY, and AGENT_ID in your environment.")
@@ -63,24 +63,36 @@ def get_api_parameters(agent_id, user_id, session_id, user_input):
     
     try:
         response = requests.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        response_json = response.json()
+        output = response_json.get("response", "")
+        params = json.loads(output)
+        return params
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
-        return None
+    except json.JSONDecodeError:
+        print("Failed to parse JSON output.")
     
-    if response.status_code == 200:
-        try:
-            response_json = response.json()
-            # Access the 'response' key
-            output = response_json.get("response", "")
-            # Parse the JSON-formatted string
-            params = json.loads(output)
-            return params
-        except json.JSONDecodeError:
-            print("Failed to parse JSON output.")
-            return None
-    else:
-        print(f"Error during conversation: {response.status_code} - {response.text}")
-        return None
+    # Fallback to Gemini GenAI
+    prompt = """
+    You are an assistant that extracts API parameters for the /mutual_funds/list endpoint based on user queries.
+    
+    Your task is to analyze the user's investment preferences and output a JSON object containing the relevant API parameters.
+    
+    Allowed Parameters:
+    
+    country: Include if the user mentions a country (e.g., 'I am from India'). performance_rating: Include if the user desires a specific performance rating (from 0 to 5). If the user mentions financial goals like 'High Returns', 'Wealth Accumulation', or 'Long-term Growth', map this to a higher performance_rating (e.g., 4 or 5). If the user mentions goals like 'Stable Income', 'Capital Preservation', or 'Short-term Needs', map this to a lower performance_rating (e.g., 1 or 2). risk_rating: Include if the user mentions their risk tolerance (from 0 to 5). Map qualitative descriptions to numerical values: Conservative: 1 Moderate: 3 Aggressive: 5 page: Include if the user wants a specific page number of results (default is 1). outputsize: Include if the user wants a specific number of records (default is 100). Guidelines:
+    
+    Only include the parameters: country, performance_rating, risk_rating, page, and outputsize. Do NOT include fund_type or any other parameters. Use numerical values between 0 and 5 for performance_rating and risk_rating. If the user provides qualitative data (e.g., 'moderate risk tolerance'), convert it to the corresponding numerical value. If the user mentions financial goals or investment timelines, infer a suitable performance_rating if possible. Your response must be a JSON object containing only the relevant parameters and their values. Do not include any additional text or explanations.
+    """
+    try:
+        model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+        genai_response = model.generate_content(prompt)
+        params = json.loads(genai_response)
+        return params
+    except Exception as genai_error:
+        print(f"GenAI fallback failed: {genai_error}")
+        raise HTTPException(status_code=500, detail="Failed to get API parameters.")
 
 def fetch_mutual_funds(api_parameters):
     api_endpoint = "https://api.twelvedata.com/mutual_funds/list"
@@ -444,6 +456,7 @@ def get_predictions(user_profile: UserProfile):
 
     # Make the API call to fetch mutual funds
     funds_list = fetch_mutual_funds(api_parameters)
+    print("\nFetched Mutual Funds Data:" if funds_list else "Failed to fetch Mutual Funds Data.")
     if funds_list and 'result' in funds_list and 'list' in funds_list['result']:
         funds_data = funds_list['result']['list']  # Access the correct keys
         # Prepare to write to CSV
